@@ -1,0 +1,24 @@
+{
+  "name": "hero",
+  "version": "1.0.0",
+  "description": "web hero section",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/juli4nz/hero.git"
+  },
+  "keywords": [
+    "js",
+    "hero",
+    "threejs"
+  ],
+  "author": "DIMA",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/juli4nz/hero/issues"
+  },
+  "homepage": "https://github.com/juli4nz/hero#readme"
+}
