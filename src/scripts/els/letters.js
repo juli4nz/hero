@@ -1,26 +1,32 @@
+import * as THREE from 'three';
 import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader';
 
 export default class Letters {
-	setup() {
+	constructor() {
 		// Get SVG markup from DOM
-		const svgMarkup = document.querySelector('svg#dima').outerHTML;
+		const svgMarkup = document.querySelector('svg').outerHTML;
 
 		// SVG Loader is not a part of the main three.js bundle
 		// we need to load it by hand from:
 		// https://github.com/mrdoob/three.js/blob/master/examples/js/loaders/SVGLoader.js
-		this.loader = new THREE.SVGLoader();
+		const loader = new SVGLoader();
 		this.svgData = loader.parse(svgMarkup);
 
 		// Group we'll use for all SVG paths
-		this.svgGroup = new THREE.Group();
+		//this.svgGroup = new THREE.Group();
+
 		// When importing SVGs paths are inverted on Y axis
 		// it happens in the process of mapping from 2d to 3d coordinate system
-		this.svgGroup.scale.y *= -1;
+		//this.svgGroup.scale.y *= -1;
 
-		this.material = new THREE.MeshNormalMaterial();
+		this.geometries = [];
+
+		//this.material = new THREE.MeshNormalMaterial();
+
+		this.geoDepth = 40;
 	}
 
-	getPaths() {
+	getGeometries() {
 		// Loop through all of the parsed paths
 		this.svgData.paths.forEach((path, i) => {
 			const shapes = path.toShapes(true);
@@ -29,21 +35,21 @@ export default class Letters {
 			shapes.forEach((shape, j) => {
 				// Finally we can take each shape and extrude it
 				const geometry = new THREE.ExtrudeGeometry(shape, {
-					depth: 20,
+					depth: this.geoDepth,
 					bevelEnabled: false
 				});
 
 				// Create a mesh and add it to the group
-				const mesh = new THREE.Mesh(geometry, this.material);
+				//const mesh = new THREE.Mesh(geometry, this.material);
 
-				this.svgGroup.add(mesh);
+				//this.svgGroup.add(mesh);
+
+				//this.svgGroup.add(geometry);
+				this.geometries.push(geometry);
 			});
 		});
-	}
 
-	init() {
-		this.setup();
-		this.getPaths();
+		return this.geometries;
 	}
 
 	foo() {
