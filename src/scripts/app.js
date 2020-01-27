@@ -1,34 +1,27 @@
+import '../styles/index.scss';
 import * as THREE from 'three';
+//import Cone from './els/cone';
+//import Box from './els/box';
+//import Tourus from './els/tourus';
 import Letters from './els/letters.js';
 import { TweenMax, Expo } from 'gsap/all';
-import { radians, map, distance, hexToRgbTreeJs } from './helpers';
+import { radians, map, distance } from './helpers';
 
 export default class App {
 	setup() {
-		this.raycaster = new THREE.Raycaster();
-
+		this.gutter = { size: 5 };
+		this.meshes = [];
+		this.grid = { cols: 3, rows: 3 };
 		this.width = window.innerWidth;
 		this.height = window.innerHeight;
-
 		this.mouse3D = new THREE.Vector2();
-		this.backgroundColor = '#1b1b1b';
-		this.gutter = { size: 1.2 };
-		this.meshes = [];
-		this.grid = { cols: 15, rows: 7 };
-		this.repulsion = 1;
 
 		const letters = new Letters().getGeometries();
 		this.geometries = letters;
 
-		window.addEventListener('resize', this.onResize.bind(this), {
-			passive: true
-		});
+		//this.geometries = [new Box(), new Tourus(), new Cone()];
 
-		window.addEventListener('mousemove', this.onMouseMove.bind(this), {
-			passive: true
-		});
-
-		this.onMouseMove({ clientX: 0, clientY: 0 });
+		this.raycaster = new THREE.Raycaster();
 	}
 
 	createScene() {
@@ -39,6 +32,7 @@ export default class App {
 			alpha: true
 		});
 		this.renderer.setSize(window.innerWidth, window.innerHeight);
+		this.renderer.setPixelRatio(window.devicePixelRatio);
 
 		this.renderer.shadowMap.enabled = true;
 		this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -47,69 +41,56 @@ export default class App {
 	}
 
 	createCamera() {
-		const width = window.innerWidth;
-		const height = window.innerHeight;
-		const ratio = width / height;
+		const ratio = window.innerWidth / window.innerHeight;
 
-		this.camera = new THREE.PerspectiveCamera(45, ratio, 1);
-		this.camera.position.set(0, 30, 0);
+		this.camera = new THREE.PerspectiveCamera(20, ratio, 1);
+		this.camera.position.set(0, 65, 0);
+		this.camera.rotation.x = -1.57;
 
 		this.scene.add(this.camera);
 	}
 
 	addAmbientLight() {
-		const obj = { color: '#2900af' };
-		const light = new THREE.AmbientLight(obj.color, 1);
+		const light = new THREE.AmbientLight('#ffffff', 1);
 
 		this.scene.add(light);
-
-		/*
-		const gui = this.gui.addFolder('Ambient Light');
-		gui.addColor(obj, 'color').onChange((color) => {
-			light.color = hexToRgbTreeJs(color);
-        });
-        */
 	}
 
 	addSpotLight() {
-		const obj = { color: '#e000ff' };
-		const light = new THREE.SpotLight(obj.color, 1, 1000);
+		const light = new THREE.SpotLight('#7bccd7', 1, 1000);
 
 		light.position.set(0, 27, 0);
 		light.castShadow = true;
 
 		this.scene.add(light);
-
-		/*
-		const gui = this.gui.addFolder('Spot Light');
-		gui.addColor(obj, 'color').onChange((color) => {
-			light.color = hexToRgbTreeJs(color);
-        });
-        */
 	}
 
 	addRectLight() {
-		const obj = { color: '#0077ff' };
-		const rectLight = new THREE.RectAreaLight(obj.color, 1, 2000, 2000);
+		const light = new THREE.RectAreaLight('#341212', 1, 2000, 2000);
 
-		rectLight.position.set(5, 50, 50);
-		rectLight.lookAt(0, 0, 0);
+		light.position.set(5, 50, 50);
+		light.lookAt(0, 0, 0);
 
-		this.scene.add(rectLight);
-
-		/*
-		const gui = this.gui.addFolder('Rect Light');
-		gui.addColor(obj, 'color').onChange((color) => {
-			rectLight.color = hexToRgbTreeJs(color);
-        });
-        */
+		this.scene.add(light);
 	}
 
 	addPointLight(color, position) {
-		const pointLight = new THREE.PointLight(color, 1, 1000, 1);
-		pointLight.position.set(position.x, position.y, position.z);
+		const light = new THREE.PointLight(color, 1, 1000, 1);
+		light.position.set(position.x, position.y, position.z);
 
-		this.scene.add(pointLight);
+		this.scene.add(light);
+	}
+
+	addFloor() {
+		const geometry = new THREE.PlaneGeometry(100, 100);
+		const material = new THREE.ShadowMaterial({ opacity: 0.3 });
+
+		this.floor = new THREE.Mesh(geometry, material);
+		this.floor.position.y = 0;
+		this.floor.rotateX(-Math.PI / 2);
+		this.floor.receiveShadow = true;
+
+		this.scene.add(this.floor);
 	}
 
 	getRandomGeometry() {
@@ -122,63 +103,57 @@ export default class App {
 		this.groupMesh = new THREE.Object3D();
 
 		const meshParams = {
-			color: '#ff00ff',
+			color: '#3e2917',
 			metalness: 0.58,
 			emissive: '#000000',
-			roughness: 0.18
+			roughness: 0.05
 		};
 
 		const material = new THREE.MeshPhysicalMaterial(meshParams);
 
-		/*
-        const gui = this.gui.addFolder('Mesh Material');
-
-        gui.addColor(meshParams, 'color').onChange((color) => {
-			material.color = hexToRgbTreeJs(color);
-		});
-		gui.add(meshParams, 'metalness', 0.1, 1).onChange((val) => {
-			material.metalness = val;
-		});
-		gui.add(meshParams, 'roughness', 0.1, 1).onChange((val) => {
-			material.roughness = val;
-        });
-        */
-
 		for (let row = 0; row < this.grid.rows; row++) {
 			this.meshes[row] = [];
 
-			for (let col = 0; col < this.grid.cols; col++) {
-				const geometry = this.getRandomGeometry();
-				const mesh = this.getMesh(geometry.geom, material);
+			for (let index = 0; index < 1; index++) {
+				const totalCol = this.getTotalRows(row);
 
-				mesh.position.set(
-					col + col * this.gutter.size,
-					0,
-					row + row * this.gutter.size
-				);
-				mesh.rotation.x = geometry.rotationX;
-				mesh.rotation.y = geometry.rotationY;
-				mesh.rotation.z = geometry.rotationZ;
+				for (let col = 0; col < this.grid.cols; col++) {
+					const geometry = this.getRandomGeometry();
+					const mesh = this.getMesh(geometry.geom, material);
 
-				mesh.initialRotation = {
-					x: mesh.rotation.x,
-					y: mesh.rotation.y,
-					z: mesh.rotation.z
-				};
+					mesh.position.y = 0;
+					mesh.position.x =
+						col +
+						col * this.gutter.size +
+						(totalCol === this.grid.cols ? 0 : 2.5);
+					mesh.position.z = row + row * (index + 0.25);
 
-				this.groupMesh.add(mesh);
-				this.meshes[row][col] = mesh;
+					mesh.rotation.x = geometry.rotationX;
+					mesh.rotation.y = geometry.rotationY;
+					mesh.rotation.z = geometry.rotationZ;
+
+					mesh.initialRotation = {
+						x: mesh.rotation.x,
+						y: mesh.rotation.y,
+						z: mesh.rotation.z
+					};
+
+					this.groupMesh.add(mesh);
+					this.meshes[row][col] = mesh;
+				}
 			}
 		}
 
-		const centerX =
-			(this.grid.cols - 1 + (this.grid.cols - 1) * this.gutter.size) * 0.5;
-		const centerZ =
-			(this.grid.rows - 1 + (this.grid.rows - 1) * this.gutter.size) * 0.5;
+		const centerX = -(this.grid.cols / 2) * this.gutter.size - 1;
+		const centerZ = -(this.grid.rows / 2) - 0.8;
 
-		this.groupMesh.position.set(-centerX, 0, -centerZ);
+		this.groupMesh.position.set(centerX, 0, centerZ);
 
 		this.scene.add(this.groupMesh);
+	}
+
+	getTotalRows(col) {
+		return col % 2 === 0 ? this.grid.cols : this.grid.cols - 1;
 	}
 
 	getMesh(geometry, material) {
@@ -190,41 +165,92 @@ export default class App {
 		return mesh;
 	}
 
-	/*
-    addCameraControls() {
-		this.controls = new THREE.OrbitControls(
-			this.camera,
-			this.renderer.domElement
-		);
-    }
-    */
+	draw() {
+		this.raycaster.setFromCamera(this.mouse3D, this.camera);
 
-	addFloor() {
-		const geometry = new THREE.PlaneGeometry(2000, 2000);
-		const material = new THREE.ShadowMaterial({ opacity: 0.3 });
+		const intersects = this.raycaster.intersectObjects([this.floor]);
 
-		this.floor = new THREE.Mesh(geometry, material);
-		this.floor.position.y = 0;
-		this.floor.rotateX(-Math.PI / 2);
-		this.floor.receiveShadow = true;
+		if (intersects.length) {
+			const { x, z } = intersects[0].point;
 
-		this.scene.add(this.floor);
+			for (let row = 0; row < this.grid.rows; row++) {
+				for (let index = 0; index < 1; index++) {
+					const totalCols = this.getTotalRows(row);
+
+					for (let col = 0; col < totalCols; col++) {
+						const mesh = this.meshes[row][col];
+
+						const mouseDistance = distance(
+							x,
+							z,
+							mesh.position.x + this.groupMesh.position.x,
+							mesh.position.z + this.groupMesh.position.z
+						);
+
+						const y = map(mouseDistance, 7, 0, 0, 6);
+						TweenMax.to(mesh.position, 0.3, {
+							y: y < 1 ? 1 : y
+						});
+
+						const scaleFactor = mesh.position.y / 1.2;
+						const scale = scaleFactor < 1 ? 1 : scaleFactor;
+						TweenMax.to(mesh.scale, 0.3, {
+							ease: Expo.easeOut,
+							x: scale,
+							y: scale,
+							z: scale
+						});
+
+						TweenMax.to(mesh.rotation, 0.7, {
+							ease: Expo.easeOut,
+							x: map(
+								mesh.position.y,
+								-1,
+								1,
+								radians(270),
+								mesh.initialRotation.x
+							),
+							z: map(
+								mesh.position.y,
+								-1,
+								1,
+								radians(-90),
+								mesh.initialRotation.z
+							),
+							y: map(
+								mesh.position.y,
+								-1,
+								1,
+								radians(45),
+								mesh.initialRotation.y
+							)
+						});
+					}
+				}
+			}
+		}
 	}
 
 	init() {
 		this.setup();
 		this.createScene();
 		this.createCamera();
+		this.createGrid();
+		this.addFloor();
+
 		this.addAmbientLight();
 		this.addSpotLight();
 		this.addRectLight();
-		this.createGrid();
-		this.addFloor();
-		this.animate();
-
 		this.addPointLight(0xfff000, { x: 0, y: 10, z: -100 });
 		this.addPointLight(0xfff000, { x: 100, y: 10, z: 0 });
 		this.addPointLight(0x00ff00, { x: 20, y: 5, z: 20 });
+
+		this.animate();
+
+		window.addEventListener('resize', this.onResize.bind(this));
+		window.addEventListener('mousemove', this.onMouseMove.bind(this), false);
+
+		this.onMouseMove({ clientX: 0, clientY: 0 });
 	}
 
 	onMouseMove({ clientX, clientY }) {
@@ -241,58 +267,7 @@ export default class App {
 		this.renderer.setSize(this.width, this.height);
 	}
 
-	draw() {
-		this.raycaster.setFromCamera(this.mouse3D, this.camera);
-
-		const intersects = this.raycaster.intersectObjects([this.floor]);
-
-		if (intersects.length) {
-			const { x, z } = intersects[0].point;
-
-			for (let row = 0; row < this.grid.rows; row++) {
-				for (let col = 0; col < this.grid.cols; col++) {
-					const mesh = this.meshes[row][col];
-
-					const mouseDistance = distance(
-						x,
-						z,
-						mesh.position.x + this.groupMesh.position.x,
-						mesh.position.z + this.groupMesh.position.z
-					);
-
-					const y = map(mouseDistance, 6, 0, 0, 10);
-					TweenMax.to(mesh.position, 0.2, { y: y < 1 ? 1 : y });
-
-					const scaleFactor = mesh.position.y / 2.5;
-					const scale = scaleFactor < 1 ? 1 : scaleFactor;
-
-					TweenMax.to(mesh.scale, 0.4, {
-						ease: Expo.easeOut,
-						x: scale,
-						y: scale,
-						z: scale
-					});
-
-					TweenMax.to(mesh.rotation, 0.5, {
-						ease: Expo.easeOut,
-						x: map(mesh.position.y, -1, 1, radians(45), mesh.initialRotation.x),
-						z: map(
-							mesh.position.y,
-							-1,
-							1,
-							radians(-90),
-							mesh.initialRotation.z
-						),
-						y: map(mesh.position.y, -1, 1, radians(90), mesh.initialRotation.y)
-					});
-				}
-			}
-		}
-	}
-
 	animate() {
-		//this.controls.update();
-
 		this.draw();
 
 		this.renderer.render(this.scene, this.camera);
