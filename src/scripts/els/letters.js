@@ -1,77 +1,89 @@
-import * as THREE from 'three';
-import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader';
+import * as THREE from "three";
+import { SVGLoader } from "three/examples/jsm/loaders/SVGLoader";
 
 export default class Letters {
-	constructor() {
-		// Get SVG markup from DOM
-		const svgMarkup = document.querySelector('svg').outerHTML;
+  constructor() {
+    this.setup();
+    this.isolatePaths();
+    this.centerGroup();
+  }
 
-		// SVG Loader is not a part of the main three.js bundle
-		// we need to load it by hand from:
-		// https://github.com/mrdoob/three.js/blob/master/examples/js/loaders/SVGLoader.js
-		const loader = new SVGLoader();
-		this.svgData = loader.parse(svgMarkup);
+  setup() {
+    // Get SVG markup from DOM
+    const svgMarkup = document.querySelector("svg").outerHTML;
 
-		// Group we'll use for all SVG paths
-		//this.svgGroup = new THREE.Group();
+    // Get SVG Data
+    const loader = new SVGLoader();
+    this.svgData = loader.parse(svgMarkup);
 
-		// When importing SVGs paths are inverted on Y axis
-		// it happens in the process of mapping from 2d to 3d coordinate system
-		//this.svgGroup.scale.y *= -1;
+    // Create Group
+    this.svgGroup = new THREE.Group();
 
-		this.geometries = [];
+    // When importing SVGs paths are inverted on Y axis
+    // it happens in the process of mapping from 2d to 3d coordinate system
+    this.svgGroup.scale.y *= -1;
 
-		//this.material = new THREE.MeshNormalMaterial();
+    // Create Material
+    this.material = new THREE.MeshNormalMaterial();
 
-		this.geoDepth = 40;
-	}
+    // Geometries
+    this.geometries = [];
+    this.shapes = [];
+  }
 
-	getGeometries() {
-		// Loop through all of the parsed paths
-		this.svgData.paths.forEach((path, i) => {
-			const shapes = path.toShapes(true);
+  isolatePaths() {
+    // Loop through all of the parsed paths
+    this.svgData.paths.forEach((path, i) => {
+      const shapes = path.toShapes(true);
 
-			// Each path has array of shapes
-			shapes.forEach((shape, j) => {
-				// Finally we can take each shape and extrude it
-				const geometry = new THREE.ExtrudeGeometry(shape, {
-					depth: this.geoDepth,
-					bevelEnabled: false
-				});
+      // Each path has array of shapes
+      shapes.forEach((shape, j) => {
+        // Extrude shape
+        const geometry = new THREE.ExtrudeBufferGeometry(shape, {
+          depth: 20,
+          steps: 2,
+          bevelEnabled: false
+        });
 
-				// Create a mesh and add it to the group
-				//const mesh = new THREE.Mesh(geometry, this.material);
+        this.geometries.push(geometry);
+        this.shapes.push(shape);
 
-				//this.svgGroup.add(mesh);
+        // Create a mesh and add it to the group
+        const mesh = new THREE.Mesh(geometry, this.material);
 
-				//this.svgGroup.add(geometry);
-				this.geometries.push(geometry);
-			});
-		});
+        this.svgGroup.add(mesh);
+      });
+    });
+  }
 
-		return this.geometries;
-	}
+  centerGroup() {
+    // Meshes we got are all relative to themselves
+    // meaning they have position set to (0, 0, 0)
+    // which makes centering them in the group easy
+    // Get group's size
+    const box = new THREE.Box3().setFromObject(this.svgGroup);
+    const size = new THREE.Vector3();
+    box.getSize(size);
 
-	foo() {
-		// Meshes we got are all relative to themselves
-		// meaning they have position set to (0, 0, 0)
-		// which makes centering them in the group easy
+    const yOffset = size.y / -2;
+    const xOffset = size.x / -2;
 
-		// Get group's size
-		const box = new THREE.Box3().setFromObject(this.svgGroup);
-		const size = new THREE.Vector3();
-		box.getSize(size);
+    // Offset all of group's elements, to center them
+    this.svgGroup.children.forEach(item => {
+      item.position.x = xOffset;
+      item.position.y = yOffset;
+    });
+  }
 
-		const yOffset = size.y / -2;
-		const xOffset = size.x / -2;
+  getGroup() {
+    return this.svgGroup;
+  }
 
-		// Offset all of group's elements, to center them
-		this.svgGroup.children.forEach((item) => {
-			item.position.x = xOffset;
-			item.position.y = yOffset;
-		});
+  getGeometries() {
+    return this.geometries;
+  }
 
-		// Finally we add svg group to the scene
-		scene.add(svgGroup);
-	}
+  getShapes() {
+    return this.shapes;
+  }
 }
