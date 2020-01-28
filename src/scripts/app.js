@@ -1,17 +1,15 @@
 import "../styles/index.scss";
 import * as THREE from "three";
-import Cone from "./els/cone";
-import Box from "./els/box";
-import Tourus from "./els/tourus";
-import { TweenMax, Expo } from "gsap/all";
-import { radians, map, distance } from "./helpers";
+import * as dat from "dat.gui";
 import Letter from "./els/letter";
+import { TweenMax, Expo } from "gsap/all";
+import { radians, map, distance, hexToRgbTreeJs } from "./helpers";
 
 export default class App {
   setup() {
-    this.gutter = { size: 5 };
     this.meshes = [];
-    this.grid = { cols: 7, rows: 7 };
+    this.gutter = { size: 5 };
+    this.grid = { cols: 4, rows: 8, type: 1 }; // type: 1(crossed); 2(rectangular)
     this.width = window.innerWidth;
     this.height = window.innerHeight;
     this.mouse3D = new THREE.Vector2();
@@ -25,11 +23,23 @@ export default class App {
     ];
 
     this.meshColor = "#EE0F34";
-    this.ambientLightColor = "#ffffff";
-    this.spotLightColor = "#7bccd7";
-    this.rectLightColor = "#341212";
+    this.ambientLightColor = "#a7bfed";
+    this.spotLightColor = "#2a2fb2";
+    this.rectLightColor = "#000000";
+    this.backgroundColor = "#11416B";
+    this.meshMetalness = 0.1;
+    this.meshRoughness = 1;
+    this.meshReflectivity = 0.1;
 
     this.raycaster = new THREE.Raycaster();
+  }
+
+  createGUI() {
+    this.gui = new dat.GUI();
+    const gui = this.gui.addFolder("Background");
+    gui.addColor(this, "backgroundColor").onChange(color => {
+      document.body.style.backgroundColor = color;
+    });
   }
 
   createScene() {
@@ -60,26 +70,36 @@ export default class App {
 
   addAmbientLight() {
     const light = new THREE.AmbientLight(this.ambientLightColor, 1);
-
     this.scene.add(light);
+
+    const gui = this.gui.addFolder("Ambient Light");
+    gui.addColor(this, "ambientLightColor").onChange(color => {
+      light.color = hexToRgbTreeJs(color);
+    });
   }
 
   addSpotLight() {
     const light = new THREE.SpotLight(this.spotLightColor, 1, 1000);
-
     light.position.set(0, 27, 0);
     light.castShadow = true;
-
     this.scene.add(light);
+
+    const gui = this.gui.addFolder("Spot Light");
+    gui.addColor(this, "spotLightColor").onChange(color => {
+      light.color = hexToRgbTreeJs(color);
+    });
   }
 
   addRectLight() {
     const light = new THREE.RectAreaLight(this.rectLightColor, 1, 2000, 2000);
-
     light.position.set(5, 50, 50);
     light.lookAt(0, 0, 0);
-
     this.scene.add(light);
+
+    const gui = this.gui.addFolder("Rect Light");
+    gui.addColor(this, "rectLightColor").onChange(color => {
+      light.color = hexToRgbTreeJs(color);
+    });
   }
 
   addPointLight(color, position) {
@@ -112,33 +132,53 @@ export default class App {
 
     const meshParams = {
       color: this.meshColor,
-      metalness: 0.58,
+      metalness: this.meshMetalness,
       emissive: "#000000",
-      roughness: 0.05
+      roughness: this.meshRoughness,
+      reflectivity: this.meshReflectivity
     };
 
     const material = new THREE.MeshPhysicalMaterial(meshParams);
 
+    // GUI
+    const gui = this.gui.addFolder("Mesh Material");
+    gui.addColor(meshParams, "color").onChange(color => {
+      material.color = hexToRgbTreeJs(color);
+    });
+    gui.add(meshParams, "metalness", 0, 1).onChange(val => {
+      material.metalness = val;
+    });
+    gui.add(meshParams, "roughness", 0, 1).onChange(val => {
+      material.roughness = val;
+    });
+    gui.add(meshParams, "reflectivity", 0, 1).onChange(val => {
+      material.reflectivity = val;
+    });
+
+    // Grid
     for (let row = 0; row < this.grid.rows; row++) {
       this.meshes[row] = [];
 
       for (let index = 0; index < 1; index++) {
-        const totalCol = this.getTotalRows(row);
+        const totalCols =
+          this.grid.type == 1 ? this.getTotalRows(row) : this.grid.cols;
 
-        for (let col = 0; col < this.grid.cols; col++) {
+        for (let col = 0; col < totalCols; col++) {
           const geometry = this.getRandomGeometry();
-          //const geometry = this.geometries[0];
-
           const mesh = this.getMesh(geometry.geom, material);
-          //console.log(geometry.geom);
-          //console.log(geometry);
 
-          mesh.position.y = 0;
-          mesh.position.x =
-            col +
-            col * this.gutter.size +
-            (totalCol === this.grid.cols ? 0 : 2.5);
-          mesh.position.z = row + row * (index + 0.25);
+          if (this.grid.type == 1) {
+            mesh.position.x =
+              col +
+              col * this.gutter.size +
+              (totalCols === this.grid.cols ? 0 : 2.5);
+            mesh.position.y = 0;
+            mesh.position.z = row + row * (index + 0.25);
+          } else {
+            mesh.position.x = col + col * this.gutter.size;
+            mesh.position.y = 0;
+            mesh.position.z = row + row * this.gutter.size;
+          }
 
           mesh.rotation.x = geometry.rotationX;
           mesh.rotation.y = geometry.rotationY;
@@ -156,10 +196,19 @@ export default class App {
       }
     }
 
-    const centerX = -(this.grid.cols / 2) * this.gutter.size - 1;
-    const centerZ = -(this.grid.rows / 2) - 0.8;
+    const centerX =
+      this.grid.type == 1
+        ? (this.grid.cols / 2) * this.gutter.size - 1
+        : (this.grid.cols - 1 + (this.grid.cols - 1) * this.gutter.size) * 0.5;
+    const centerZ =
+      this.grid.type == 1
+        ? this.grid.rows / 2 - 0.8
+        : (this.grid.rows - 1 + (this.grid.rows - 1) * this.gutter.size) * 0.5;
 
-    this.groupMesh.position.set(centerX, 0, centerZ);
+    //const centerX = (this.grid.cols / 2) * this.gutter.size - 1;
+    //const centerZ = this.grid.rows / 2 - 0.8;
+
+    this.groupMesh.position.set(-centerX, 0, -centerZ);
 
     this.scene.add(this.groupMesh);
   }
@@ -187,7 +236,8 @@ export default class App {
 
       for (let row = 0; row < this.grid.rows; row++) {
         for (let index = 0; index < 1; index++) {
-          const totalCols = this.getTotalRows(row);
+          const totalCols =
+            this.grid.type == 1 ? this.getTotalRows(row) : this.grid.cols;
 
           for (let col = 0; col < totalCols; col++) {
             const mesh = this.meshes[row][col];
@@ -245,6 +295,7 @@ export default class App {
 
   init() {
     this.setup();
+    this.createGUI();
     this.createScene();
     this.createCamera();
     this.createGrid();
