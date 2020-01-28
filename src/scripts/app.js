@@ -11,7 +11,7 @@ export default class App {
   setup() {
     this.gutter = { size: 5 };
     this.meshes = [];
-    this.grid = { cols: 11, rows: 7 };
+    this.grid = { cols: 7, rows: 7 };
     this.width = window.innerWidth;
     this.height = window.innerHeight;
     this.mouse3D = new THREE.Vector2();
@@ -20,15 +20,14 @@ export default class App {
       new Letter("svg#dima_d"),
       new Letter("svg#dima_i"),
       new Letter("svg#dima_m"),
-      new Letter("svg#dima_a"),
-      new Letter("svg#dima_")
+      new Letter("svg#dima_a")
+      //new Letter("svg#dima_")
     ];
 
-    //this.geometries.push(new Box());
-    //this.geometries.push(new Tourus());
-    //this.geometries.push(new Cone());
-
-    //this.geometries = [new Box(), new Tourus(), new Cone()];
+    this.meshColor = "#EE0F34";
+    this.ambientLightColor = "#ffffff";
+    this.spotLightColor = "#7bccd7";
+    this.rectLightColor = "#341212";
 
     this.raycaster = new THREE.Raycaster();
   }
@@ -60,13 +59,13 @@ export default class App {
   }
 
   addAmbientLight() {
-    const light = new THREE.AmbientLight("#ffffff", 1);
+    const light = new THREE.AmbientLight(this.ambientLightColor, 1);
 
     this.scene.add(light);
   }
 
   addSpotLight() {
-    const light = new THREE.SpotLight("#7bccd7", 1, 1000);
+    const light = new THREE.SpotLight(this.spotLightColor, 1, 1000);
 
     light.position.set(0, 27, 0);
     light.castShadow = true;
@@ -75,7 +74,7 @@ export default class App {
   }
 
   addRectLight() {
-    const light = new THREE.RectAreaLight("#341212", 1, 2000, 2000);
+    const light = new THREE.RectAreaLight(this.rectLightColor, 1, 2000, 2000);
 
     light.position.set(5, 50, 50);
     light.lookAt(0, 0, 0);
@@ -112,7 +111,7 @@ export default class App {
     this.groupMesh = new THREE.Object3D();
 
     const meshParams = {
-      color: "#3e2917",
+      color: this.meshColor,
       metalness: 0.58,
       emissive: "#000000",
       roughness: 0.05

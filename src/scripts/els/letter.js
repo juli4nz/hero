@@ -22,14 +22,17 @@ export default class Letter {
     const paths = this.data.paths;
 
     if (paths.length > 1) {
-      this.geometry = [];
+      this.geometries = [];
       for (let i = 0; i < paths.length; i++) {
         let path = paths[i];
         let shapes = path.toShapes(true);
 
         for (let j = 0; j < shapes.length; j++) {
           let shape = shapes[j];
-          this.geometry.push(new ExtrudeBufferGeometry(shape, this.extArgs));
+          const geometry = new ExtrudeBufferGeometry(shape, this.extArgs);
+          geometry.scale(0.01, 0.01, 0.01);
+          geometry.center();
+          this.geometries.push(geometry);
         }
       }
     } else {
