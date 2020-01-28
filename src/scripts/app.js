@@ -8,8 +8,9 @@ import { radians, map, distance, hexToRgbTreeJs } from "./helpers";
 export default class App {
   setup() {
     this.meshes = [];
-    this.gutter = { size: 5 };
-    this.grid = { cols: 4, rows: 8, type: 1 }; // type: 1(crossed); 2(rectangular)
+    this.gutter = { size: 3.5 };
+    // type: 1(crossed); 2(rectangular)
+    this.grid = { cols: 10, rows: 5, type: 1 };
     this.width = window.innerWidth;
     this.height = window.innerHeight;
     this.mouse3D = new THREE.Vector2();
@@ -155,65 +156,160 @@ export default class App {
       material.reflectivity = val;
     });
 
+    switch (this.grid.type) {
+      case 1: {
+        this.addCrossedGrid(material);
+        break;
+      }
+      case 2: {
+        this.addNormalGrid(material);
+        break;
+      }
+      default: {
+        this.addNormalGrid(material);
+        break;
+      }
+    }
+  }
+
+  addCrossedGrid(material) {
     // Grid
     for (let row = 0; row < this.grid.rows; row++) {
       this.meshes[row] = [];
+      const totalCols = this.getTotalCols(row);
 
-      for (let index = 0; index < 1; index++) {
-        const totalCols =
-          this.grid.type == 1 ? this.getTotalRows(row) : this.grid.cols;
+      for (let col = 0; col < totalCols; col++) {
+        const geometry = this.getRandomGeometry();
+        const mesh = this.getMesh(geometry.geom, material);
+        mesh.position.x =
+          col * this.gutter.size +
+          (totalCols === this.grid.cols ? 0 : this.gutter.size / 2);
+        mesh.position.y = 0;
+        mesh.position.z = row + row * (this.gutter.size / 2);
 
-        for (let col = 0; col < totalCols; col++) {
-          const geometry = this.getRandomGeometry();
-          const mesh = this.getMesh(geometry.geom, material);
+        mesh.rotation.x = geometry.rotationX;
+        mesh.rotation.y = geometry.rotationY;
+        mesh.rotation.z = geometry.rotationZ;
 
-          if (this.grid.type == 1) {
-            mesh.position.x =
-              col +
-              col * this.gutter.size +
-              (totalCols === this.grid.cols ? 0 : 2.5);
-            mesh.position.y = 0;
-            mesh.position.z = row + row * (index + 0.25);
-          } else {
-            mesh.position.x = col + col * this.gutter.size;
-            mesh.position.y = 0;
-            mesh.position.z = row + row * this.gutter.size;
-          }
+        mesh.initialRotation = {
+          x: mesh.rotation.x,
+          y: mesh.rotation.y,
+          z: mesh.rotation.z
+        };
 
-          mesh.rotation.x = geometry.rotationX;
-          mesh.rotation.y = geometry.rotationY;
-          mesh.rotation.z = geometry.rotationZ;
-
-          mesh.initialRotation = {
-            x: mesh.rotation.x,
-            y: mesh.rotation.y,
-            z: mesh.rotation.z
-          };
-
-          this.groupMesh.add(mesh);
-          this.meshes[row][col] = mesh;
-        }
+        this.groupMesh.add(mesh);
+        this.meshes[row][col] = mesh;
       }
     }
 
-    const centerX =
-      this.grid.type == 1
-        ? (this.grid.cols / 2) * this.gutter.size - 1
-        : (this.grid.cols - 1 + (this.grid.cols - 1) * this.gutter.size) * 0.5;
-    const centerZ =
-      this.grid.type == 1
-        ? this.grid.rows / 2 - 0.8
-        : (this.grid.rows - 1 + (this.grid.rows - 1) * this.gutter.size) * 0.5;
-
-    //const centerX = (this.grid.cols / 2) * this.gutter.size - 1;
-    //const centerZ = this.grid.rows / 2 - 0.8;
+    // Center Grid
+    const centerX = (this.grid.cols / 2) * this.gutter.size - 1;
+    const centerZ = this.grid.rows + this.grid.type / 2;
 
     this.groupMesh.position.set(-centerX, 0, -centerZ);
 
     this.scene.add(this.groupMesh);
   }
 
-  getTotalRows(col) {
+  addNormalGrid(material) {
+    // Grid
+    for (let row = 0; row < this.grid.rows; row++) {
+      this.meshes[row] = [];
+
+      for (let col = 0; col < this.grid.cols; col++) {
+        const geometry = this.getRandomGeometry();
+        const mesh = this.getMesh(geometry.geom, material);
+
+        mesh.position.x = col + col * this.gutter.size;
+        mesh.position.y = 0;
+        mesh.position.z = row + row * this.gutter.size;
+
+        mesh.rotation.x = geometry.rotationX;
+        mesh.rotation.y = geometry.rotationY;
+        mesh.rotation.z = geometry.rotationZ;
+
+        mesh.initialRotation = {
+          x: mesh.rotation.x,
+          y: mesh.rotation.y,
+          z: mesh.rotation.z
+        };
+
+        this.groupMesh.add(mesh);
+        this.meshes[row][col] = mesh;
+      }
+    }
+
+    // Center Grid
+    const centerX =
+      (this.grid.cols - 1 + (this.grid.cols - 1) * this.gutter.size) / 2;
+    const centerZ =
+      (this.grid.rows - 1 + (this.grid.rows - 1) * this.gutter.size) * 0.5;
+
+    this.groupMesh.position.set(-centerX, 0, -centerZ);
+
+    this.scene.add(this.groupMesh);
+  }
+
+  /*
+  addGrid() {
+    
+    for (let row = 0; row < this.grid.rows; row++) {
+      this.meshes[row] = [];
+      console.log("Row: " + row);
+
+      const totalCols =
+        this.grid.type == 1 ? this.getTotalCols(row) : this.grid.cols;
+
+      for (let col = 0; col < totalCols; col++) {
+        const geometry = this.getRandomGeometry();
+        const mesh = this.getMesh(geometry.geom, material);
+        console.log("Col: " + col);
+
+        if (this.grid.type == 1) {
+          mesh.position.x =
+            col * this.gutter.size +
+            (totalCols === this.grid.cols ? 0 : this.gutter.size / 2);
+          mesh.position.y = 0;
+          mesh.position.z = row + row * (this.gutter.size / 2);
+        } else {
+          mesh.position.x = col + col * this.gutter.size;
+          mesh.position.y = 0;
+          mesh.position.z = row + row * this.gutter.size;
+        }
+
+        mesh.rotation.x = geometry.rotationX;
+        mesh.rotation.y = geometry.rotationY;
+        mesh.rotation.z = geometry.rotationZ;
+
+        mesh.initialRotation = {
+          x: mesh.rotation.x,
+          y: mesh.rotation.y,
+          z: mesh.rotation.z
+        };
+
+        this.groupMesh.add(mesh);
+        this.meshes[row][col] = mesh;
+      }
+    }
+
+    // Center Grid
+    const centerX =
+      this.grid.type == 1
+        ? (this.grid.cols / 2) * this.gutter.size - 1
+        : (this.grid.cols - 1 + (this.grid.cols - 1) * this.gutter.size) / 2;
+    const centerZ =
+      this.grid.type == 1
+        ? this.grid.rows + this.grid.type / 2
+        : (this.grid.rows - 1 + (this.grid.rows - 1) * this.gutter.size) * 0.5;
+
+    this.groupMesh.position.set(-centerX, 0, -centerZ);
+
+	this.scene.add(this.groupMesh);
+	
+  }
+  */
+
+  getTotalCols(col) {
     return col % 2 === 0 ? this.grid.cols : this.grid.cols - 1;
   }
 
@@ -235,59 +331,51 @@ export default class App {
       const { x, z } = intersects[0].point;
 
       for (let row = 0; row < this.grid.rows; row++) {
-        for (let index = 0; index < 1; index++) {
-          const totalCols =
-            this.grid.type == 1 ? this.getTotalRows(row) : this.grid.cols;
+        const totalCols =
+          this.grid.type == 1 ? this.getTotalCols(row) : this.grid.cols;
 
-          for (let col = 0; col < totalCols; col++) {
-            const mesh = this.meshes[row][col];
+        for (let col = 0; col < totalCols; col++) {
+          const mesh = this.meshes[row][col];
 
-            const mouseDistance = distance(
-              x,
-              z,
-              mesh.position.x + this.groupMesh.position.x,
-              mesh.position.z + this.groupMesh.position.z
-            );
+          const mouseDistance = distance(
+            x,
+            z,
+            mesh.position.x + this.groupMesh.position.x,
+            mesh.position.z + this.groupMesh.position.z
+          );
 
-            const y = map(mouseDistance, 7, 0, 0, 6);
-            TweenMax.to(mesh.position, 0.3, {
-              y: y < 1 ? 1 : y
-            });
+          const y = map(mouseDistance, 7, 0, 0, 6);
+          TweenMax.to(mesh.position, 0.3, {
+            y: y < 1 ? 1 : y
+          });
 
-            const scaleFactor = mesh.position.y / 1.2;
-            const scale = scaleFactor < 1 ? 1 : scaleFactor;
-            TweenMax.to(mesh.scale, 0.3, {
-              ease: Expo.easeOut,
-              x: scale,
-              y: scale,
-              z: scale
-            });
+          const scaleFactor = mesh.position.y / 1.2;
+          const scale = scaleFactor < 1 ? 1 : scaleFactor;
+          TweenMax.to(mesh.scale, 0.3, {
+            ease: Expo.easeOut,
+            x: scale,
+            y: scale,
+            z: scale
+          });
 
-            TweenMax.to(mesh.rotation, 0.7, {
-              ease: Expo.easeOut,
-              x: map(
-                mesh.position.y,
-                -1,
-                1,
-                radians(270),
-                mesh.initialRotation.x
-              ),
-              z: map(
-                mesh.position.y,
-                -1,
-                1,
-                radians(-90),
-                mesh.initialRotation.z
-              ),
-              y: map(
-                mesh.position.y,
-                -1,
-                1,
-                radians(45),
-                mesh.initialRotation.y
-              )
-            });
-          }
+          TweenMax.to(mesh.rotation, 0.7, {
+            ease: Expo.easeOut,
+            x: map(
+              mesh.position.y,
+              -1,
+              1,
+              radians(270),
+              mesh.initialRotation.x
+            ),
+            z: map(
+              mesh.position.y,
+              -1,
+              1,
+              radians(-90),
+              mesh.initialRotation.z
+            ),
+            y: map(mesh.position.y, -1, 1, radians(45), mesh.initialRotation.y)
+          });
         }
       }
     }

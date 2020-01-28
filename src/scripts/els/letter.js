@@ -3,9 +3,9 @@ import { SVGLoader } from "three/examples/jsm/loaders/SVGLoader";
 import { radians } from "../helpers";
 
 export default class Letter {
-  constructor(id, size, depth) {
+  constructor(id, depth, size) {
     this.markup = document.querySelector(id).outerHTML;
-    this.size = !isNaN(size) ? size : 0.005;
+    this.size = !isNaN(size) ? size : 0.003;
     this.depth = !isNaN(depth) ? depth : 50;
     this.extArgs = {
       depth: this.depth,
