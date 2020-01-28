@@ -3,24 +3,38 @@ import * as THREE from 'three';
 import * as dat from 'dat.gui';
 import Letter from './els/letter';
 import gsap, { Expo } from 'gsap/all';
-import { radians, map, distance, hexToRgbTreeJs } from './helpers';
+import { radians, map, distance, hexToRgbTreeJs, cmToPixel } from './helpers';
 
 export default class App {
   setup() {
-    this.meshes = [];
-    this.gutter = { size: 2.5 };
-    // type: 1(crossed); 2(rectangular)
-    this.grid = { cols: 17, rows: 10, type: 1 };
     this.width = window.innerWidth;
     this.height = window.innerHeight;
+    this.meshes = [];
+    this.gutter = { size: 2 };
+    // type: 1(crossed); 2(rectangular)
+    this.grid2 = { cols: 17, rows: 10, type: 1 };
+    this.grid = {
+      cols: Math.floor(this.width / cmToPixel(this.gutter.size, 72) - 1),
+      rows: Math.floor(this.height / cmToPixel(this.gutter.size, 72) - 1),
+      type: 2
+    };
+
+    console.log(
+      this.grid.cols +
+        ' : ' +
+        this.width +
+        ' : ' +
+        cmToPixel(this.gutter.size, 72)
+    );
+    console.log(this.grid.rows);
     this.mouse3D = new THREE.Vector2();
 
     this.geometries = [
       new Letter('svg#dima_d'),
       new Letter('svg#dima_i'),
       new Letter('svg#dima_m'),
-      new Letter('svg#dima_a'),
-      new Letter('svg#dima_')
+      new Letter('svg#dima_a')
+      //new Letter('svg#dima_')
     ];
 
     this.meshColor = '#EE0F34';
