@@ -40,11 +40,23 @@ const visibleWidthAtZDepth = (depth, camera) => {
 	return height * camera.aspect;
 };
 
+const debounce = (fn, time) => {
+	let timeout;
+
+	return function() {
+		const functionCall = () => fn.apply(this, arguments);
+
+		clearTimeout(timeout);
+		timeout = setTimeout(functionCall, time);
+	};
+};
+
 export {
 	radians,
 	distance,
 	map,
 	hexToRgbTreeJs,
 	visibleHeightAtZDepth,
-	visibleWidthAtZDepth
+	visibleWidthAtZDepth,
+	debounce
 };

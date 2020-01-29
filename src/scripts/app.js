@@ -9,16 +9,18 @@ import {
 	distance,
 	hexToRgbTreeJs,
 	visibleHeightAtZDepth,
-	visibleWidthAtZDepth
+	visibleWidthAtZDepth,
+	debounce
 } from './helpers';
 
 export default class App {
+	// SETUP ================
 	setup() {
 		this.width = window.innerWidth;
 		this.height = window.innerHeight;
 		this.meshes = [];
 		this.gutter = { size: 2 };
-		this.grid = { cols: 17, rows: 10, type: 1 }; // type: 1(crossed); 2(rectangular)
+		this.grid = { cols: 5, rows: 5, type: 1 }; // type: 1(crossed); 2(rectangular)
 
 		this.mouse3D = new THREE.Vector2();
 
@@ -41,8 +43,12 @@ export default class App {
 
 		// handles mouse coordinates mapping from 2D canvas to 3D world
 		this.raycaster = new THREE.Raycaster();
+
+		// create a basic 3D object to be used as a container for our grid elements so we can move all of them together
+		this.groupMesh = new THREE.Object3D();
 	}
 
+	// GUI ==========================
 	createGUI() {
 		this.gui = new dat.GUI();
 
@@ -52,6 +58,7 @@ export default class App {
 		});
 	}
 
+	// SCENE ==========================
 	createScene() {
 		this.scene = new THREE.Scene();
 
@@ -68,62 +75,66 @@ export default class App {
 		document.body.appendChild(this.renderer.domElement);
 	}
 
+	// CAMERA ==========================
 	createCamera() {
 		const ratio = window.innerWidth / window.innerHeight;
+		this.depth = 65;
 
 		this.camera = new THREE.PerspectiveCamera(20, ratio, 1);
 
 		// set the distance our camera will have from the grid
-		this.camera.position.set(0, 65, 0);
+		this.camera.position.set(0, this.depth, 0);
 
 		// we rotate our camera so we can get a view from the top
 		this.camera.rotation.x = -1.57;
 
 		this.scene.add(this.camera);
-
-		// divide grid elements throught the screen size
-		this.grid.cols = Math.floor(
-			visibleWidthAtZDepth(65, this.camera) / this.gutter.size
-		);
-		this.grid.rows = Math.floor(
-			visibleHeightAtZDepth(65, this.camera) / this.gutter.size
-		);
 	}
 
+	// AMBIENT LIGHT ==============================
 	addAmbientLight() {
 		const light = new THREE.AmbientLight(this.ambientLightColor, 1);
 		this.scene.add(light);
 
+		/*
 		const gui = this.gui.addFolder('Ambient Light');
 		gui.addColor(this, 'ambientLightColor').onChange((color) => {
 			light.color = hexToRgbTreeJs(color);
-		});
+    });
+    */
 	}
 
+	// SPOT LIGHT ================================
 	addSpotLight() {
 		const light = new THREE.SpotLight(this.spotLightColor, 1, 1000);
 		light.position.set(0, 27, 0);
 		light.castShadow = true;
 		this.scene.add(light);
 
+		/*
 		const gui = this.gui.addFolder('Spot Light');
 		gui.addColor(this, 'spotLightColor').onChange((color) => {
 			light.color = hexToRgbTreeJs(color);
-		});
+    });
+    */
 	}
 
+	// RECT LIGHT ==================================
 	addRectLight() {
 		const light = new THREE.RectAreaLight(this.rectLightColor, 1, 2000, 2000);
 		light.position.set(5, 50, 50);
 		light.lookAt(0, 0, 0);
 		this.scene.add(light);
 
+		/*
 		const gui = this.gui.addFolder('Rect Light');
 		gui.addColor(this, 'rectLightColor').onChange((color) => {
 			light.color = hexToRgbTreeJs(color);
-		});
+    });
+    */
 	}
 
+	// POINT LIGHT =================================
 	addPointLight(color, position) {
 		const light = new THREE.PointLight(color, 1, 1000, 1);
 		light.position.set(position.x, position.y, position.z);
@@ -131,6 +142,7 @@ export default class App {
 		this.scene.add(light);
 	}
 
+	// FLOOR ======================================
 	addFloor() {
 		const geometry = new THREE.PlaneGeometry(100, 100);
 		const material = new THREE.ShadowMaterial({ opacity: 0.3 });
@@ -143,16 +155,26 @@ export default class App {
 		this.scene.add(this.floor);
 	}
 
+	// RANDOM GEOMETRY ==========================
 	getRandomGeometry() {
 		return this.geometries[
 			Math.floor(Math.random() * Math.floor(this.geometries.length))
 		];
 	}
 
-	createGrid() {
-		// create a basic 3D object to be used as a container for our grid elements so we can move all of them together
-		this.groupMesh = new THREE.Object3D();
+	// FULLSCREEN GRID =======================
+	setGrid() {
+		// divide grid elements throught the screen size
+		this.grid.cols = Math.floor(
+			visibleWidthAtZDepth(this.depth, this.camera) / this.gutter.size
+		);
+		this.grid.rows = Math.floor(
+			visibleHeightAtZDepth(this.depth, this.camera) / this.gutter.size
+		);
+	}
 
+	// CREATE GRID ===========================
+	createGrid() {
 		const meshParams = {
 			color: this.meshColor,
 			metalness: this.meshMetalness,
@@ -165,6 +187,7 @@ export default class App {
 		const material = new THREE.MeshPhysicalMaterial(meshParams);
 
 		// GUI
+		/*
 		const gui = this.gui.addFolder('Mesh Material');
 		gui.addColor(meshParams, 'color').onChange((color) => {
 			material.color = hexToRgbTreeJs(color);
@@ -177,7 +200,8 @@ export default class App {
 		});
 		gui.add(meshParams, 'reflectivity', 0, 1).onChange((val) => {
 			material.reflectivity = val;
-		});
+    });
+    */
 
 		switch (this.grid.type) {
 			case 1: {
@@ -193,8 +217,11 @@ export default class App {
 				break;
 			}
 		}
+
+		this.scene.add(this.groupMesh);
 	}
 
+	// GRID TYPE CROSSED ===========================
 	addCrossedGrid(material) {
 		// Create grid
 		for (let row = 0; row < this.grid.rows; row++) {
@@ -234,10 +261,9 @@ export default class App {
 		const centerZ = (this.grid.rows / 2) * this.gutter.size - 1;
 
 		this.groupMesh.position.set(-centerX, 0, -centerZ);
-
-		this.scene.add(this.groupMesh);
 	}
 
+	// GRID TYPE NORMAL ==============================
 	addNormalGrid(material) {
 		// Create grid
 		for (let row = 0; row < this.grid.rows; row++) {
@@ -274,9 +300,16 @@ export default class App {
 			(this.grid.cols - 1 + (this.grid.cols - 1) * this.gutter.size) / 2;
 		const centerZ =
 			(this.grid.rows - 1 + (this.grid.rows - 1) * this.gutter.size) * 0.5;
-		this.groupMesh.position.set(-centerX, 0, -centerZ);
 
-		this.scene.add(this.groupMesh);
+		this.groupMesh.position.set(-centerX, 0, -centerZ);
+	}
+
+	// REMOVE GRID =======================================
+	removeGrid() {
+		this.scene.remove(this.groupMesh);
+		this.groupMesh = null;
+		this.groupMesh = new THREE.Object3D();
+		//this.animate();
 	}
 
 	getTotalCols(col) {
@@ -292,6 +325,7 @@ export default class App {
 		return mesh;
 	}
 
+	// DRAW OBJECTS =====================================
 	draw() {
 		// maps our mouse coordinates from the camera perspective
 		this.raycaster.setFromCamera(this.mouse3D, this.camera);
@@ -335,7 +369,10 @@ export default class App {
 
 					// based on the y position we animate the mesh.position.y
 					// we don´t go below position y of 1
-					gsap.to(mesh.position, { duration: 0.3, y: y < 1 ? 1 : y });
+					gsap.to(mesh.position, {
+						duration: 0.3,
+						y: y < 1 ? 1 : y
+					});
 
 					// create a scale factor based on the mesh.position.y
 					// increase value = decreases scale height
@@ -366,11 +403,13 @@ export default class App {
 		}
 	}
 
+	// INIT ======================================
 	init() {
 		this.setup();
-		this.createGUI();
+		//this.createGUI();
 		this.createScene();
 		this.createCamera();
+		this.setGrid();
 		this.createGrid();
 		this.addFloor();
 
@@ -383,8 +422,18 @@ export default class App {
 
 		this.animate();
 
-		//window.addEventListener('resize', this.onResize.bind(this));
+		// we call a debounce function  before the onResize
+		window.addEventListener(
+			'resize',
+			debounce((e) => {
+				this.onResize();
+			}, 500)
+		);
+
 		window.addEventListener('mousemove', this.onMouseMove.bind(this), false);
+		window.addEventListener('touchmove', this.onTouchMove.bind(this), false);
+		window.addEventListener('touchstart', this.onTouchMove.bind(this), false);
+		window.addEventListener('touchend', this.onTouchEnd.bind(this), false);
 
 		// we call this to simulate the initial position of the mouse cursor
 		this.onMouseMove({ clientX: 0, clientY: 0 });
@@ -395,12 +444,25 @@ export default class App {
 		this.mouse3D.y = -(clientY / this.height) * 2 + 1;
 	}
 
+	onTouchMove(e) {
+		this.mouse3D.x = (e.changedTouches[0].clientX / this.width) * 2 - 1;
+		this.mouse3D.y = -(e.changedTouches[0].clientY / this.height) * 2 + 1;
+	}
+
+	onTouchEnd(e) {
+		this.mouse3D.x = (0 / this.width) * 2 - 1;
+		this.mouse3D.y = -(0 / this.height) * 2 + 1;
+	}
+
 	onResize() {
 		this.width = window.innerWidth;
 		this.height = window.innerHeight;
 		this.camera.aspect = this.width / this.height;
 		this.camera.updateProjectionMatrix();
 		this.renderer.setSize(this.width, this.height);
+		this.removeGrid();
+		this.setGrid();
+		this.createGrid();
 	}
 
 	animate() {
@@ -411,62 +473,3 @@ export default class App {
 		requestAnimationFrame(this.animate.bind(this));
 	}
 }
-
-/*
-  addGrid() {
-    
-    for (let row = 0; row < this.grid.rows; row++) {
-      this.meshes[row] = [];
-      console.log("Row: " + row);
-
-      const totalCols =
-        this.grid.type == 1 ? this.getTotalCols(row) : this.grid.cols;
-
-      for (let col = 0; col < totalCols; col++) {
-        const geometry = this.getRandomGeometry();
-        const mesh = this.getMesh(geometry.geom, material);
-        console.log("Col: " + col);
-
-        if (this.grid.type == 1) {
-          mesh.position.x =
-            col * this.gutter.size +
-            (totalCols === this.grid.cols ? 0 : this.gutter.size / 2);
-          mesh.position.y = 0;
-          mesh.position.z = row + row * (this.gutter.size / 2);
-        } else {
-          mesh.position.x = col + col * this.gutter.size;
-          mesh.position.y = 0;
-          mesh.position.z = row + row * this.gutter.size;
-        }
-
-        mesh.rotation.x = geometry.rotationX;
-        mesh.rotation.y = geometry.rotationY;
-        mesh.rotation.z = geometry.rotationZ;
-
-        mesh.initialRotation = {
-          x: mesh.rotation.x,
-          y: mesh.rotation.y,
-          z: mesh.rotation.z
-        };
-
-        this.groupMesh.add(mesh);
-        this.meshes[row][col] = mesh;
-      }
-    }
-
-    // Center Grid
-    const centerX =
-      this.grid.type == 1
-        ? (this.grid.cols / 2) * this.gutter.size - 1
-        : (this.grid.cols - 1 + (this.grid.cols - 1) * this.gutter.size) / 2;
-    const centerZ =
-      this.grid.type == 1
-        ? this.grid.rows + this.grid.type / 2
-        : (this.grid.rows - 1 + (this.grid.rows - 1) * this.gutter.size) * 0.5;
-
-    this.groupMesh.position.set(-centerX, 0, -centerZ);
-
-	this.scene.add(this.groupMesh);
-	
-  }
-  */
