@@ -12,6 +12,12 @@ import {
   visibleWidthAtZDepth,
   debounce
 } from './helpers';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { SavePass } from 'three/examples/jsm/postprocessing/SavePass.js';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
+import { CopyShader } from 'three/examples/jsm/shaders/CopyShader.js';
+import { BlendShader } from 'three/examples/jsm/shaders/BlendShader.js';
 
 export default class App {
   // SETUP ================
@@ -41,7 +47,7 @@ export default class App {
     };
 
     this.mat = {
-      color: '#EE0F34',
+      color: '#EE0F34', // blue #242370
       metalness: 0.1,
       roughness: 1,
       reflectivity: 0.1,
@@ -115,7 +121,7 @@ export default class App {
   addSpotLight() {
     const light = new THREE.SpotLight(this.light.spot, 1, 1000);
     light.position.set(0, 27, 0);
-    light.castShadow = true;
+    light.castShadow = false;
     this.scene.add(light);
 
     this.guiDirs.light.addColor(this.light, 'spot').onChange(color => {
@@ -154,6 +160,44 @@ export default class App {
     this.floor.receiveShadow = true;
 
     this.scene.add(this.floor);
+  }
+
+  addPostProcessing() {
+    // Post-processing inits
+    this.composer = new EffectComposer(this.renderer);
+
+    // render pass
+    const renderPass = new RenderPass(this.scene, this.camera);
+
+    const renderTargetParameters = {
+      minFilter: THREE.LinearFilter,
+      magFilter: THREE.LinearFilter,
+      stencilBuffer: false
+    };
+
+    // save pass
+    const savePass = new SavePass(
+      new THREE.WebGLRenderTarget(
+        this.width,
+        this.height,
+        renderTargetParameters
+      )
+    );
+
+    // blend pass
+    const blendPass = new ShaderPass(BlendShader, 'tDiffuse1');
+    blendPass.uniforms['tDiffuse2'].value = savePass.renderTarget.texture;
+    blendPass.uniforms['mixRatio'].value = 0.8;
+
+    // output pass
+    const outputPass = new ShaderPass(CopyShader);
+    outputPass.renderToScreen = true;
+
+    // adding passes to composer
+    this.composer.addPass(renderPass);
+    this.composer.addPass(blendPass);
+    this.composer.addPass(savePass);
+    this.composer.addPass(outputPass);
   }
 
   // RANDOM GEOMETRY ===========================
@@ -387,7 +431,7 @@ export default class App {
 
           // create a scale factor based on the mesh.position.y
           // increase value = decreases scale height
-          const scaleFactor = mesh.position.y / 1.2;
+          const scaleFactor = mesh.position.y / 1.5;
 
           // to keep our scale to a minimum size of 1 we check if the scaleFactor is below 1
           const scale = scaleFactor < 1 ? 1 : scaleFactor;
@@ -402,6 +446,7 @@ export default class App {
           });
 
           // rotate our element
+          /*
           gsap.to(mesh.rotation, {
             duration: 0.5,
             ease: Expo.easeOut,
@@ -409,6 +454,7 @@ export default class App {
             z: map(mesh.position.y, -1, 1, radians(90), mesh.initialRotation.z),
             y: map(mesh.position.y, -1, 1, radians(90), mesh.initialRotation.y)
           });
+          */
         }
       }
     }
@@ -422,13 +468,14 @@ export default class App {
     this.setGrid();
     this.createGrid();
     this.addFloor();
+    this.addPostProcessing();
 
     this.addAmbientLight();
     this.addSpotLight();
     this.addRectLight();
-    this.addPointLight(0xfff000, { x: 0, y: 10, z: -100 });
-    this.addPointLight(0xfff000, { x: 100, y: 10, z: 0 });
-    this.addPointLight(0x00ff00, { x: 20, y: 5, z: 20 });
+    this.addPointLight('#fff000', { x: 0, y: 10, z: -100 });
+    this.addPointLight('#fff000', { x: 100, y: 10, z: 0 });
+    this.addPointLight('#00ff00', { x: 20, y: 5, z: 20 });
 
     this.animate();
 
@@ -484,7 +531,8 @@ export default class App {
 
   animate() {
     this.draw();
-    this.renderer.render(this.scene, this.camera);
+    //this.renderer.render(this.scene, this.camera);
+    this.composer.render();
     requestAnimationFrame(this.animate.bind(this));
   }
 }

@@ -195,6 +195,7 @@ canvas {
   position: absolute;
   top: 0;
   left: 0;
+  z-index: 1;
 }
 
 svg:not(#dima) {
@@ -214,6 +215,7 @@ svg:not(#dima) {
   -ms-transform: translate(-50%, -50%);
   transform: translate(-50%, -50%);
   padding: 20px 50px;
+  z-index: 2;
 
   &.basic {
     fill: #ee0f34;
