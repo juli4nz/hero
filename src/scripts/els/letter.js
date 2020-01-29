@@ -1,12 +1,12 @@
-import { ExtrudeBufferGeometry } from "three";
-import { SVGLoader } from "three/examples/jsm/loaders/SVGLoader";
-import { radians } from "../helpers";
+import { ExtrudeBufferGeometry } from 'three';
+import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader';
+import { radians } from '../helpers';
 
 export default class Letter {
   constructor(id, depth, size) {
     this.markup = document.querySelector(id).outerHTML;
     this.size = !isNaN(size) ? size : 0.003;
-    this.depth = !isNaN(depth) ? depth : 50;
+    this.depth = !isNaN(depth) ? depth : 20;
     this.extArgs = {
       depth: this.depth,
       steps: 2,
@@ -26,7 +26,7 @@ export default class Letter {
     let geometry = null;
 
     if (paths.length > 1) {
-      console.log("SVG file has multiple paths!");
+      console.log('SVG file has multiple paths!');
       /* TODO: Fix it
       this.geometries = [];
       for (let i = 0; i < paths.length; i++) {
