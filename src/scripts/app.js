@@ -20,15 +20,15 @@ import { CopyShader } from 'three/examples/jsm/shaders/CopyShader.js';
 import { BlendShader } from 'three/examples/jsm/shaders/BlendShader.js';
 
 export default class App {
-  // SETUP ================
+  // SETUP ==================
   setup() {
     this.width = window.innerWidth;
     this.height = window.innerHeight;
     this.meshes = [];
     this.gutter = { size: 2 };
     this.grid = {
-      cols: 5,
-      rows: 5,
+      cols: 5, // default
+      rows: 5, // default
       type: 1 // type: 1(crossed); 2(rectangular)
     };
 
@@ -46,13 +46,14 @@ export default class App {
       rect: '#000000'
     };
 
-    this.mat = {
-      color: '#EE0F34', // blue #242370
+    this.matParams = {
+      color: '#333c42', // blue #242370 // red #EE0F34
       metalness: 0.1,
       roughness: 1,
       reflectivity: 0.1,
       transparent: true,
-      opacity: 0.5
+      opacity: 1,
+      emissive: '#000000'
     };
 
     // holds mouse/touch 2D coordinates
@@ -63,6 +64,9 @@ export default class App {
 
     // create a basic 3D object to be used as a container for our grid elements so we can move all of them together
     this.groupMesh = new THREE.Object3D();
+
+    // we create our material outside the loop to keep it more performant
+    this.material = new THREE.MeshPhysicalMaterial(this.matParams);
 
     // create GUI to be used as a container to gui elements
     const gui = new dat.GUI();
@@ -121,7 +125,7 @@ export default class App {
   addSpotLight() {
     const light = new THREE.SpotLight(this.light.spot, 1, 1000);
     light.position.set(0, 27, 0);
-    light.castShadow = false;
+    light.castShadow = true;
     this.scene.add(light);
 
     this.guiDirs.light.addColor(this.light, 'spot').onChange(color => {
@@ -187,7 +191,7 @@ export default class App {
     // blend pass
     const blendPass = new ShaderPass(BlendShader, 'tDiffuse1');
     blendPass.uniforms['tDiffuse2'].value = savePass.renderTarget.texture;
-    blendPass.uniforms['mixRatio'].value = 0.8;
+    blendPass.uniforms['mixRatio'].value = 0.5;
 
     // output pass
     const outputPass = new ShaderPass(CopyShader);
@@ -220,19 +224,17 @@ export default class App {
 
   // CREATE GRID ===========================
   createGrid() {
-    const material = this.getMaterial();
-
     switch (this.grid.type) {
       case 1: {
-        this.addCrossedGrid(material);
+        this.addCrossedGrid(this.material);
         break;
       }
       case 2: {
-        this.addNormalGrid(material);
+        this.addNormalGrid(this.material);
         break;
       }
       default: {
-        this.addNormalGrid(material);
+        this.addNormalGrid(this.material);
         break;
       }
     }
@@ -351,33 +353,27 @@ export default class App {
   }
 
   // GET MATERIAL ========================================
-  getMaterial() {
-    const matParams = { emissive: '#000000' };
-    Object.assign(matParams, this.mat);
-
-    // we create our material outside the loop to keep it more performant
-    const material = new THREE.MeshPhysicalMaterial(matParams);
-
-    this.guiDirs.mesh.add(matParams, 'transparent', 0, 1).onChange(val => {
-      material.transparent = val;
+  addMaterialGUI() {
+    this.guiDirs.mesh.add(this.matParams, 'transparent', 0, 1).onChange(val => {
+      this.material.transparent = val;
     });
-    this.guiDirs.mesh.add(matParams, 'opacity', 0, 1).onChange(val => {
-      material.opacity = val;
+    this.guiDirs.mesh.add(this.matParams, 'opacity', 0, 1).onChange(val => {
+      this.material.opacity = val;
     });
-    this.guiDirs.mesh.addColor(matParams, 'color').onChange(color => {
-      material.color = hexToRgbTreeJs(color);
+    this.guiDirs.mesh.addColor(this.matParams, 'color').onChange(color => {
+      this.material.color = hexToRgbTreeJs(color);
     });
-    this.guiDirs.mesh.add(matParams, 'metalness', 0, 1).onChange(val => {
-      material.metalness = val;
+    this.guiDirs.mesh.add(this.matParams, 'metalness', 0, 1).onChange(val => {
+      this.material.metalness = val;
     });
-    this.guiDirs.mesh.add(matParams, 'roughness', 0, 1).onChange(val => {
-      material.roughness = val;
+    this.guiDirs.mesh.add(this.matParams, 'roughness', 0, 1).onChange(val => {
+      this.material.roughness = val;
     });
-    this.guiDirs.mesh.add(matParams, 'reflectivity', 0, 1).onChange(val => {
-      material.reflectivity = val;
-    });
-
-    return material;
+    this.guiDirs.mesh
+      .add(this.matParams, 'reflectivity', 0, 1)
+      .onChange(val => {
+        this.material.reflectivity = val;
+      });
   }
 
   // DRAW OBJECTS =====================================
@@ -446,7 +442,6 @@ export default class App {
           });
 
           // rotate our element
-          /*
           gsap.to(mesh.rotation, {
             duration: 0.5,
             ease: Expo.easeOut,
@@ -454,7 +449,6 @@ export default class App {
             z: map(mesh.position.y, -1, 1, radians(90), mesh.initialRotation.z),
             y: map(mesh.position.y, -1, 1, radians(90), mesh.initialRotation.y)
           });
-          */
         }
       }
     }
@@ -469,13 +463,16 @@ export default class App {
     this.createGrid();
     this.addFloor();
     this.addPostProcessing();
+    this.addMaterialGUI();
 
     this.addAmbientLight();
-    this.addSpotLight();
-    this.addRectLight();
-    this.addPointLight('#fff000', { x: 0, y: 10, z: -100 });
-    this.addPointLight('#fff000', { x: 100, y: 10, z: 0 });
-    this.addPointLight('#00ff00', { x: 20, y: 5, z: 20 });
+    //this.addSpotLight();
+    //this.addRectLight();
+    //this.addPointLight('#fff000', { x: 0, y: 10, z: -100 });
+    //this.addPointLight('#fff000', { x: 100, y: 10, z: 0 });
+    //this.addPointLight('#00ff00', { x: 20, y: 5, z: 20 });
+
+    //this.addBgAnimation();
 
     this.animate();
 
