@@ -176,17 +176,14 @@ table {
 
 // CUSTOM STYLE ================
 body {
-  --color-text: #fff;
-  --color-bg: #333c42;
-  color: #79573e;
-  color: var(--color-text);
-  background-color: #11416b;
-  background-color: var(--color-bg);
+  color: #11416b;
+  background-color: #fff;
   font-family: Futura, 'futura-pt', Arial, sans-serif;
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-size: cover;
+  padding: 40px;
 }
 
 canvas {
@@ -206,23 +203,32 @@ svg:not(#dima) {
   z-index: 1000 !important;
 }
 
-#dima {
-  position: absolute;
-  display: block;
-  margin: 0 auto;
-  top: 50%;
-  left: 50%;
-  -webkit-transform: translate(-50%, -50%);
-  -ms-transform: translate(-50%, -50%);
-  transform: translate(-50%, -50%);
-  //padding: 20px 50px;
-  z-index: 1;
-
-  &.basic {
-    fill: #ee0f34;
-    fill-opacity: 0;
-    stroke: #ee0f34;
-    width: 150%;
-    height: auto;
+.pageborder {
+  background: #f0f0f0;
+  position: fixed;
+  z-index: 10001;
+  &.top {
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 40px;
+  }
+  &.bottom {
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 40px;
+  }
+  &.left {
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 40px;
+  }
+  &.right {
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 40px;
   }
 }

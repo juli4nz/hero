@@ -20,7 +20,9 @@ import { CopyShader } from 'three/examples/jsm/shaders/CopyShader.js';
 import { BlendShader } from 'three/examples/jsm/shaders/BlendShader.js';
 
 export default class App {
-  // SETUP ==================
+  /*
+   * SETUP ==================
+   */
   setup() {
     this.width = window.innerWidth;
     this.height = window.innerHeight;
@@ -52,7 +54,7 @@ export default class App {
       roughness: 1,
       reflectivity: 0.1,
       transparent: true,
-      opacity: 1,
+      opacity: 0.2,
       emissive: '#000000'
     };
 
@@ -78,7 +80,9 @@ export default class App {
     };
   }
 
-  // SCENE =================================
+  /*
+   * SCENE =================================
+   */
   createScene() {
     this.scene = new THREE.Scene();
 
@@ -95,7 +99,9 @@ export default class App {
     document.body.appendChild(this.renderer.domElement);
   }
 
-  // CAMERA ==================================
+  /*
+   * CAMERA =================================
+   */
   createCamera() {
     const ratio = window.innerWidth / window.innerHeight;
     this.depth = 65;
@@ -111,7 +117,9 @@ export default class App {
     this.scene.add(this.camera);
   }
 
-  // AMBIENT LIGHT ==============================
+  /*
+   * AMBIENT LIGHT ==============================
+   */
   addAmbientLight() {
     const light = new THREE.AmbientLight(this.light.ambient, 1);
     this.scene.add(light);
@@ -121,7 +129,9 @@ export default class App {
     });
   }
 
-  // SPOT LIGHT ==============================
+  /*
+   * SPOT LIGHT ==============================
+   */
   addSpotLight() {
     const light = new THREE.SpotLight(this.light.spot, 1, 1000);
     light.position.set(0, 27, 0);
@@ -133,7 +143,9 @@ export default class App {
     });
   }
 
-  // RECT LIGHT =================================
+  /*
+   * RECT LIGHT =================================
+   */
   addRectLight() {
     const light = new THREE.RectAreaLight(this.light.rect, 1, 2000, 2000);
     light.position.set(5, 50, 50);
@@ -145,7 +157,9 @@ export default class App {
     });
   }
 
-  // POINT LIGHT =================================
+  /*
+   * POINT LIGHT =================================
+   */
   addPointLight(color, position) {
     const light = new THREE.PointLight(color, 1, 1000, 1);
     light.position.set(position.x, position.y, position.z);
@@ -153,7 +167,9 @@ export default class App {
     this.scene.add(light);
   }
 
-  // FLOOR =======================================
+  /*
+   * FLOOR =======================================
+   */
   addFloor() {
     const geometry = new THREE.PlaneGeometry(100, 100);
     const material = new THREE.ShadowMaterial({ opacity: 0.3 });
@@ -166,7 +182,10 @@ export default class App {
     this.scene.add(this.floor);
   }
 
-  addPostProcessing() {
+  /*
+   * Motion Blur =========================================
+   */
+  addMotionBlur() {
     // Post-processing inits
     this.composer = new EffectComposer(this.renderer);
 
@@ -204,14 +223,18 @@ export default class App {
     this.composer.addPass(outputPass);
   }
 
-  // RANDOM GEOMETRY ===========================
+  /*
+   * RANDOM GEOMETRY ===========================
+   */
   getRandomGeometry() {
     return this.geometries[
       Math.floor(Math.random() * Math.floor(this.geometries.length))
     ];
   }
 
-  // FULLSCREEN GRID ==============================
+  /*
+   * FULLSCREEN GRID ==============================
+   */
   setGrid() {
     // get the number of grid elements throught the screen size
     this.grid.cols = Math.floor(
@@ -222,8 +245,14 @@ export default class App {
     );
   }
 
-  // CREATE GRID ===========================
+  /*
+   * CREATE GRID ===========================
+   */
   createGrid() {
+    // set grid
+    this.setGrid();
+
+    // switch in between grids formats
     switch (this.grid.type) {
       case 1: {
         this.addCrossedGrid(this.material);
@@ -242,7 +271,9 @@ export default class App {
     this.scene.add(this.groupMesh);
   }
 
-  // GRID TYPE CROSSED ===========================
+  /*
+   * GRID TYPE CROSSED ===========================
+   */
   addCrossedGrid(material) {
     // Create grid
     for (let row = 0; row < this.grid.rows; row++) {
@@ -284,7 +315,9 @@ export default class App {
     this.groupMesh.position.set(-centerX, 0, -centerZ);
   }
 
-  // GRID TYPE NORMAL ==============================
+  /*
+   * GRID TYPE NORMAL ==============================
+   */
   addNormalGrid(material) {
     // Create grid
     for (let row = 0; row < this.grid.rows; row++) {
@@ -325,25 +358,26 @@ export default class App {
     this.groupMesh.position.set(-centerX, 0, -centerZ);
   }
 
-  // REMOVE GRID =======================================
+  /*
+   * REMOVE GRID =======================================
+   */
   removeGrid() {
-    // remove Mesh group from the scene
     this.scene.remove(this.groupMesh);
-
-    // null the Mesh group
     this.groupMesh = null;
-
-    // new instance of Mesh group
     this.groupMesh = new THREE.Object3D();
   }
 
-  // GET TOTAL COLS =======================================
+  /*
+   * GET TOTAL COLS =======================================
+   */
   getTotalCols(col) {
     // return a difrent value every 2 steps
     return col % 2 === 0 ? this.grid.cols : this.grid.cols - 1;
   }
 
-  // GET MESH =============================================
+  /*
+   * GET MESH =============================================
+   */
   getMesh(geometry, material) {
     const mesh = new THREE.Mesh(geometry, material);
     mesh.castShadow = true;
@@ -352,7 +386,9 @@ export default class App {
     return mesh;
   }
 
-  // GET MATERIAL ========================================
+  /*
+  + MATERIAL GUI =======================================
+  */
   addMaterialGUI() {
     this.guiDirs.mesh.add(this.matParams, 'transparent', 0, 1).onChange(val => {
       this.material.transparent = val;
@@ -376,7 +412,9 @@ export default class App {
       });
   }
 
-  // DRAW OBJECTS =====================================
+  /*
+   * DRAW OBJECTS =====================================
+   */
   draw() {
     // maps our mouse coordinates from the camera perspective
     this.raycaster.setFromCamera(this.mouse3D, this.camera);
@@ -454,29 +492,28 @@ export default class App {
     }
   }
 
-  // INIT ======================================
+  /*
+   * INIT ==============================
+   */
   init() {
     this.setup();
     this.createScene();
     this.createCamera();
-    this.setGrid();
     this.createGrid();
     this.addFloor();
-    this.addPostProcessing();
-    this.addMaterialGUI();
-
     this.addAmbientLight();
     //this.addSpotLight();
-    //this.addRectLight();
+    this.addRectLight();
     //this.addPointLight('#fff000', { x: 0, y: 10, z: -100 });
     //this.addPointLight('#fff000', { x: 100, y: 10, z: 0 });
     //this.addPointLight('#00ff00', { x: 20, y: 5, z: 20 });
+    this.addMotionBlur();
 
-    //this.addBgAnimation();
+    this.addMaterialGUI();
 
     this.animate();
 
-    // we call a debounce function  before the onResize
+    // we call a debounce function before we call the onResize
     window.addEventListener(
       'resize',
       debounce(e => {
@@ -500,21 +537,33 @@ export default class App {
     this.onMouseMove({ clientX: 0, clientY: 0 });
   }
 
+  /*
+   * Called on mouse move ===============================
+   */
   onMouseMove({ clientX, clientY }) {
     this.mouse3D.x = (clientX / this.width) * 2 - 1;
     this.mouse3D.y = -(clientY / this.height) * 2 + 1;
   }
 
+  /*
+   * Called on touch start and move ========================
+   */
   onTouchStartMove(e) {
     this.mouse3D.x = (e.changedTouches[0].clientX / this.width) * 2 - 1;
     this.mouse3D.y = -(e.changedTouches[0].clientY / this.height) * 2 + 1;
   }
 
+  /*
+   * Called on touch end ==============================
+   */
   onTouchEnd(e) {
     this.mouse3D.x = (0 / this.width) * 2 - 1;
     this.mouse3D.y = -(0 / this.height) * 2 + 1;
   }
 
+  /*
+   * Called on window resize ========================
+   */
   onResize() {
     this.width = window.innerWidth;
     this.height = window.innerHeight;
@@ -526,8 +575,12 @@ export default class App {
     this.createGrid();
   }
 
+  /*
+   * ANIMATE LOOP ====================================
+   */
   animate() {
     this.draw();
+    // use this if dont use motion blur
     //this.renderer.render(this.scene, this.camera);
     this.composer.render();
     requestAnimationFrame(this.animate.bind(this));
